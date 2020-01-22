@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from survey import insert_questions
 import logging
 import telegram
-from telegram import Update
+from telegram import Update, ReplyKeyboardRemove
 from telegram.ext import CommandHandler, CallbackContext, MessageHandler, \
     Filters, Updater, ConversationHandler
 import bot_settings
@@ -19,71 +19,78 @@ dispatcher = updater.dispatcher
 
 
 def start(update: Update, context: CallbackContext):
-    client = MongoClient()
-    db = client.get_database("survey")
-    questions_collection = db.get_collection("questions")
-    first_question = questions_collection.find_one({"id": 0})
-
     chat_id = update.effective_chat.id
     logger.info(f"> Start chat #{chat_id}")
-    custom_keyboard = first_question['answers'],
+    custom_keyboard = ["כן", "לא"],
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-    context.bot.send_message(chat_id=update.message.chat_id, text=first_question['question'] +
-                             """ניתן לצאת באמצעות /cancel""",
+    context.bot.send_message(chat_id=update.message.chat_id,
+                             text=""" 
+                             היי, האם תרצה להשתתף בסקר קצר לקראת הבחירות?
+                               ניתן לצאת באמצעות /cancel
+                           """,
                              reply_markup=reply_markup)
+
+    return AGE
 
 
 def cancel(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=update.message.chat_id, text="Goodbye")
 
 
-def respond(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
+AGE, GENDER, CITY, PARTY = range(4)
+
+
+def age(update: Update, context: CallbackContext):
+    custom_keyboard = ["18-30", "30-40", "40-50", "50-60"],
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    context.bot.send_message(chat_id=update.message.chat_id, text="בן כמה אתה?",
+                             reply_markup=reply_markup)
+    return GENDER
+
+
+def gender(update: Update, context: CallbackContext):
+    custom_keyboard = ["זכר", "נקבה", "אחר"],
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    context.bot.send_message(chat_id=update.message.chat_id, text="מה המין שלך?",
+                             reply_markup=reply_markup)
+    return CITY
+
+
+def city(update: Update, context: CallbackContext):
     text = update.message.text
-    logger.info(f"= Got on chat #{chat_id}: {text!r}")
-    if text == "כן":
-        context.bot.send_message(chat_id=update.message.chat_id, text="מעולה! תודה רבה!")
-        client = MongoClient()
-        db = client.get_database("survey")
-        questions_collection = db.get_collection("questions")
-        questions = questions_collection.find({})
-        while True:
-            for question in questions:
-                custom_keyboard = question['answers'],
-                reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-                context.bot.send_message(chat_id=update.message.chat_id,
-                                         text=question['question'],
-                                         reply_markup=reply_markup)
+    context.bot.send_message(chat_id=update.message.chat_id, text="מהי עיר מגוריך?", reply_markup=ReplyKeyboardRemove())
 
-    else:
-        context.bot.send_message(chat_id=update.message.chat_id,
-                                 text="לא נורא, נתראה פעם הבאה")
-
-    conv_handler = ConversationHandler(
-
-        entry_points=[CommandHandler('start', start)],
-
-        states={
-            GENDER: [MessageHandler(Filters.regex('^(Boy|Girl|Other)$'), gender)],
-
-            PHOTO: [MessageHandler(Filters.photo, photo),
-                    CommandHandler('skip', skip_photo)],
-
-            LOCATION: [MessageHandler(Filters.location, location),
-                       CommandHandler('skip', skip_location)],
-
-            BIO: [MessageHandler(Filters.text, bio)]
-        },
-
-        fallbacks=[CommandHandler('cancel', cancel)]
-    )
+    return PARTY
 
 
-dispatcher.add_handler(start_handler)
+def party(update: Update, context: CallbackContext):
+    custom_keyboard = ["ליכוד", "כחול לבן", "שס", "ימינה"],
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    context.bot.send_message(chat_id=update.message.chat_id, text="איזה מפלגה את\ה מתכוון לבחור?",
+                             reply_markup=reply_markup)
+    return ConversationHandler.END
 
-echo_handler = MessageHandler(Filters.text, respond)
-dispatcher.add_handler(echo_handler)
-insert_questions()
+
+conv_handler = ConversationHandler(
+
+    entry_points=[CommandHandler('start', start)],
+
+    states={
+        AGE: [MessageHandler(Filters.text, age)],
+
+        GENDER: [MessageHandler(Filters.text, gender)],
+
+        CITY: [MessageHandler(Filters.text, city)],
+
+        PARTY: [MessageHandler(Filters.text, party)]
+    },
+
+    fallbacks=[CommandHandler('cancel', cancel)]
+)
+
+# start_handler = CommandHandler('start', start)
+# dispatcher.add_handler(start_handler)
+dispatcher.add_handler(conv_handler)
 
 logger.info("* Start polling...")
 updater.start_polling()  # Starts polling in a background thread.
