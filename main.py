@@ -41,11 +41,11 @@ AGE, GENDER, CITY, PARTY, FINISH = range(5)
 
 def age(update: Update, context: CallbackContext):
     text = update.message.text
-    res[str(update.effective_chat.id)]= {
-        "name": update.effective_chat.first_name,
-        "lname": update.effective_chat.last_name,
-        "want": text
-    }
+    res["user_id"] = update.effective_chat.id
+    res["name"] = update.effective_chat.first_name
+    res["lname"] = update.effective_chat.last_name
+    res["want"] = text
+
     custom_keyboard = ["18-30", "30-40", "40-50", "50-60"],
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
     update.message.reply_text("בן כמה אתה?", reply_markup=reply_markup)
@@ -54,9 +54,7 @@ def age(update: Update, context: CallbackContext):
 
 def gender(update: Update, context: CallbackContext):
     text = update.message.text
-    res[str(update.effective_chat.id)].update ({
-        "age": text
-    })
+    res["age"] = text
 
     custom_keyboard = ["זכר", "נקבה", "אחר"],
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
@@ -66,9 +64,7 @@ def gender(update: Update, context: CallbackContext):
 
 def city(update: Update, context: CallbackContext):
     text = update.message.text
-    res[str(update.effective_chat.id)].update({
-        "gender": text
-    })
+    res["gender"] = text
     update.message.reply_text("מהי עיר מגוריך?", reply_markup=ReplyKeyboardRemove())
 
     return PARTY
@@ -76,9 +72,7 @@ def city(update: Update, context: CallbackContext):
 
 def party(update: Update, context: CallbackContext):
     text = update.message.text
-    res[str(update.effective_chat.id)].update({
-        "city": text
-    })
+    res["city"] = text
     custom_keyboard = ["ליכוד", "כחול לבן", "שס", "ימינה"],
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
     update.message.reply_text("באיזה מפלגה את\ה מתכוון לבחור?",
@@ -89,9 +83,7 @@ def party(update: Update, context: CallbackContext):
 
 def finish(update: Update, context: CallbackContext):
     text = update.message.text
-    res[str(update.effective_chat.id)].update({
-        "party": text
-    })
+    res["party"] = text
     client = MongoClient()
     db = client.get_database("survey")
     results = db.get_collection("results")
