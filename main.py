@@ -90,6 +90,10 @@ def finish(update: Update, context: CallbackContext):
     results.insert_one(res)
     print(res)
     res.clear()
+    custom_keyboard = ["/start" , "/cancel"],
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+    update.message.reply_text("תודה רבה שהשתתפת.",
+                              reply_markup=reply_markup)
     return ConversationHandler.END
 
 
@@ -111,7 +115,7 @@ conv_handler = ConversationHandler(
 
     fallbacks=[CommandHandler('cancel', cancel)]
 )
-
+dispatcher.add_handler(CommandHandler('cancel', cancel))
 dispatcher.add_handler(conv_handler)
 res = {}
 logger.info("* Start polling...")
